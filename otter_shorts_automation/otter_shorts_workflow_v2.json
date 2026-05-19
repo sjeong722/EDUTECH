@@ -1,0 +1,424 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "여기에_CLAUDE_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"claude-sonnet-4-5\",\n  \"max_tokens\": 2000,\n  \"system\": \"당신은 '취준하는 수달이' 쇼츠 영상 콘텐츠 크리에이터입니다.\\n\\n[캐릭터 설정]\\n- 이름: 수달이\\n- 컨셉: 취업 준비 중인 귀여운 3D 수달\\n- 말투: 공감가고 귀엽고 따뜻한 톤\\n- 타겟: 취준생, 직장인 공감 콘텐츠\\n\\n[출력 형식 - 반드시 JSON으로만 응답]\\n{\\n  \\\"title\\\": \\\"영상 제목\\\",\\n  \\\"concept\\\": \\\"오늘의 컨셉 한 줄 설명\\\",\\n  \\\"bgm_mood\\\": \\\"bgm 분위기 키워드 (예: lofi, 따뜻한, 감성적)\\\",\\n  \\\"scenes\\\": [\\n    {\\n      \\\"scene_number\\\": 1,\\n      \\\"duration_sec\\\": 4,\\n      \\\"narration\\\": \\\"나레이션 텍스트\\\",\\n      \\\"image_prompt_en\\\": \\\"Gemini 이미지 생성용 영어 프롬프트. 반드시 포함: cute 3D otter with big dark eyes, brown fur, white cheeks, chubby face, Pixar-style animation, warm soft lighting, vertical 9:16 format\\\",\\n      \\\"subtitle\\\": \\\"영상에 표시될 자막 텍스트\\\"\\n    }\\n  ],\\n  \\\"srt_content\\\": \\\"SRT 자막 파일 전체 내용\\\"\\n}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"오늘 날짜: {{ $now.toFormat('yyyy-MM-dd') }}\\n\\n취준하는 수달이 쇼츠 영상 1편을 기획해주세요.\\n- 총 4~5개 씬\\n- 각 씬 4~5초\\n- 전체 영상 15~20초\\n- 오늘의 취준 공감 주제로 스토리 구성\\n- SRT 자막 파일도 함께 생성 (각 씬 타임코드 포함)\\n\\nJSON 형식으로만 응답하세요. 마크다운 코드블록 없이 순수 JSON만.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "88682d03-992b-4791-89d0-6b2f82ab694e",
+      "name": "Claude - 스크립트 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3648, 2864],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Lu0riRYIyINCFprT",
+          "name": "claude_api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst content = response.content[0].text;\n\nconst cleanJson = content\n  .replace(/```json\\n?/g, '')\n  .replace(/```\\n?/g, '')\n  .trim();\n\nlet scriptData;\ntry {\n  scriptData = JSON.parse(cleanJson);\n} catch(e) {\n  throw new Error('Claude 응답 파싱 실패: ' + content);\n}\n\nconst scenes = scriptData.scenes;\nconst results = [];\n\nfor (const scene of scenes) {\n  results.push({\n    json: {\n      title: scriptData.title,\n      concept: scriptData.concept,\n      bgm_mood: scriptData.bgm_mood,\n      srt_content: scriptData.srt_content,\n      total_scenes: scenes.length,\n      scene_number: scene.scene_number,\n      duration_sec: scene.duration_sec,\n      narration: scene.narration,\n      image_prompt_en: scene.image_prompt_en,\n      subtitle: scene.subtitle,\n      date_str: new Date().toISOString().split('T')[0]\n    }\n  });\n}\n\nconst scriptText = [\n  `📅 날짜: ${results[0].json.date_str}`,\n  `🎬 제목: ${scriptData.title}`,\n  `💡 컨셉: ${scriptData.concept}`,\n  `🎵 BGM 분위기: ${scriptData.bgm_mood}`,\n  ``,\n  `========================================`,\n  `씬별 스크립트`,\n  `========================================`,\n  ...scenes.map(s =>\n    `[씬 ${s.scene_number}] (${s.duration_sec}초)\\n나레이션: ${s.narration}\\n자막: ${s.subtitle}`\n  ),\n  ``,\n  `========================================`,\n  `SRT 자막`,\n  `========================================`,\n  scriptData.srt_content\n].join('\\n\\n');\n\nresults.forEach(r => { r.json.script_text = scriptText; });\n\nreturn results;"
+      },
+      "id": "6776d4ca-650b-4d14-8308-a10ea303cd5a",
+      "name": "스크립트 파싱 + 씬 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3872, 2864]
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ $('스크립트 파싱 + 씬 분리').first().json.script_text }}",
+        "name": "={{ $('스크립트 파싱 + 씬 분리').first().json.date_str }}_script.txt",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "여기에_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "edu_otter_image"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [4096, 2864],
+      "id": "fde5907a-c479-4f7e-be5c-bd0bacd379ad",
+      "name": "스크립트 txt 생성",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "여기에_GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [4320, 2864],
+      "id": "52a472d4-dff5-4b5f-a6c5-7c72961bccd3",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=여기에_GEMINI_API_KEY",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{ $json.image_prompt_en }}, vertical 9:16 aspect ratio. CHARACTER CONSISTENCY RULES - always apply exactly: round chubby face, very large dark glossy eyes like black marbles, short dense brown fur, cream/white colored cheeks and chin area, tiny dark round nose, no visible ears or very small rounded ears, Pixar Disney 3D CGI animation style, subsurface scattering on fur, warm golden soft lighting from upper left, shallow depth of field background\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseModalities\": [\"IMAGE\", \"TEXT\"]\n  }\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "87f8074f-943a-43f3-ae7e-5db5eec69c77",
+      "name": "Gemini - 이미지 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4544, 2672]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.item.json;\n\nlet base64Image = null;\nlet mimeType = 'image/png';\n\ntry {\n  const parts = response.candidates[0].content.parts;\n  for (const part of parts) {\n    if (part.inlineData) {\n      base64Image = part.inlineData.data;\n      mimeType = part.inlineData.mimeType || 'image/png';\n      break;\n    }\n  }\n} catch(e) {\n  throw new Error('Gemini 이미지 파싱 실패: ' + JSON.stringify(response));\n}\n\nif (!base64Image) {\n  throw new Error('이미지 데이터를 찾을 수 없습니다');\n}\n\nreturn [{\n  json: {\n    title: $('스크립트 파싱 + 씬 분리').item.json.title,\n    concept: $('스크립트 파싱 + 씬 분리').item.json.concept,\n    bgm_mood: $('스크립트 파싱 + 씬 분리').item.json.bgm_mood,\n    srt_content: $('스크립트 파싱 + 씬 분리').item.json.srt_content,\n    scene_number: $('스크립트 파싱 + 씬 분리').item.json.scene_number,\n    subtitle: $('스크립트 파싱 + 씬 분리').item.json.subtitle,\n    date_str: $('스크립트 파싱 + 씬 분리').item.json.date_str,\n    total_scenes: $('스크립트 파싱 + 씬 분리').item.json.total_scenes,\n    image_base64: base64Image,\n    mime_type: mimeType,\n    file_name: `scene_${$('스크립트 파싱 + 씬 분리').item.json.scene_number}_${$('스크립트 파싱 + 씬 분리').item.json.date_str}.png`\n  },\n  binary: {\n    image: {\n      data: base64Image,\n      mimeType: mimeType,\n      fileName: `scene_${$('스크립트 파싱 + 씬 분리').item.json.scene_number}_${$('스크립트 파싱 + 씬 분리').item.json.date_str}.png`\n    }\n  }\n}];"
+      },
+      "id": "35ebaff8-1eab-4a41-8584-62bff215a3c5",
+      "name": "이미지 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4768, 2672]
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "image",
+        "name": "={{ $json.file_name }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "여기에_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "edu_otter_image"
+        },
+        "options": {}
+      },
+      "id": "ba23c1e7-7c3c-4579-9983-a935f9d45720",
+      "name": "Google Drive - 이미지 저장",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [4992, 2672],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "여기에_GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kling JWT 토큰 생성\nconst crypto = require('crypto');\n\nconst ak = '여기에_KLING_ACCESS_KEY';\nconst sk = '여기에_KLING_SECRET_KEY';\n\nconst now = Math.floor(Date.now() / 1000);\n\nconst header = Buffer.from(JSON.stringify({\n  alg: 'HS256',\n  typ: 'JWT'\n})).toString('base64url');\n\nconst payload = Buffer.from(JSON.stringify({\n  iss: ak,\n  exp: now + 1800,\n  nbf: now - 5\n})).toString('base64url');\n\nconst signature = crypto\n  .createHmac('sha256', sk)\n  .update(`${header}.${payload}`)\n  .digest('base64url');\n\nconst token = `${header}.${payload}.${signature}`;\n\nconst input = $input.first().json;\n\nreturn [{\n  json: {\n    ...input,\n    kling_jwt: token\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5216, 2672],
+      "id": "2c9c5f5e-7aaf-4a50-b9e5-aa542347c7aa",
+      "name": "JWT 토큰생성"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-singapore.klingai.com/v1/videos/image2video",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('JWT 토큰생성').item.json.kling_jwt }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model_name\": \"kling-v2-6\",\n  \"image\": \"{{ $('이미지 추출').item.json.image_base64 }}\",\n  \"prompt\": \"{{ $('스크립트 파싱 + 씬 분리').item.json.image_prompt_en }}, smooth natural animation, cute otter character moves gently\",\n  \"negative_prompt\": \"blurry, distorted, deformed, ugly\",\n  \"duration\": \"5\",\n  \"mode\": \"std\",\n  \"sound\": \"off\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [5440, 2672],
+      "id": "a390942e-aa10-4184-b955-b21cd7fb90af",
+      "name": "Kling - 영상 생성 요청"
+    },
+    {
+      "parameters": {
+        "amount": 90
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [5664, 2672],
+      "id": "28d731c6-906c-4ce8-ac25-5c0f11596622",
+      "name": "Wait",
+      "webhookId": "faa5ac00-5219-44c6-94b8-d04a136ef303"
+    },
+    {
+      "parameters": {
+        "url": "=https://api-singapore.klingai.com/v1/videos/image2video/{{ $('Kling - 영상 생성 요청').item.json.data.task_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('JWT 토큰생성').item.json.kling_jwt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [5888, 2672],
+      "id": "e39cfe15-8361-474b-bd52-cde8d9eb2c21",
+      "name": "Kling - 결과 조회"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst videoUrl = response.data.task_result.videos[0].url;\nconst sceneNumber = $('스크립트 파싱 + 씬 분리').item.json.scene_number;\nconst dateStr = $('스크립트 파싱 + 씬 분리').item.json.date_str;\n\nreturn [{\n  json: {\n    video_url: videoUrl,\n    file_name: `clip_${sceneNumber}_${dateStr}.mp4`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6112, 2672],
+      "id": "5f0c9ab0-5d3b-4b88-b69e-bfce31cd741c",
+      "name": "영상 URL 추출"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.video_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [6336, 2672],
+      "id": "6f195da3-c561-4e50-bd54-3060d29dab56",
+      "name": "영상 다운로드"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('영상 URL 추출').item.json.file_name }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "여기에_5S영상_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "5s 영상"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [6560, 2840],
+      "id": "a5543dce-ff61-450b-99d5-0a88319ce62a",
+      "name": "클립 저장",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "여기에_GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ $('스크립트 파싱 + 씬 분리').first().json.srt_content }}",
+        "name": "={{ $('스크립트 파싱 + 씬 분리').first().json.date_str }}_subtitle.srt",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "여기에_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "edu_otter_image"
+        },
+        "options": {}
+      },
+      "id": "39c947f3-f38e-445b-a2ef-36741ac5c5a9",
+      "name": "Google Drive - 자막 저장",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [4544, 2864],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "여기에_GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const bgmMood = $('스크립트 파싱 + 씬 분리').first().json.bgm_mood;\nconst dateStr = $('스크립트 파싱 + 씬 분리').first().json.date_str;\nconst title = $('스크립트 파싱 + 씬 분리').first().json.title;\nconst concept = $('스크립트 파싱 + 씬 분리').first().json.concept;\n\nconst bgmPool = {\n  lofi: '수달_bgm_1.mp3',\n  잔잔한: '수달_bgm_1.mp3',\n  감성: '수달_bgm_1.mp3',\n  따뜻한: '수달_bgm_2.mp3',\n  신나는: '수달_bgm_2.mp3',\n  default: '수달_bgm_1.mp3'\n};\n\nlet selectedBgm = bgmPool.default;\nfor (const [keyword, filename] of Object.entries(bgmPool)) {\n  if (bgmMood && bgmMood.includes(keyword)) {\n    selectedBgm = filename;\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    date_str: dateStr,\n    title: title,\n    concept: concept,\n    bgm_mood: bgmMood,\n    selected_bgm: selectedBgm,\n    total_scenes: $('스크립트 파싱 + 씬 분리').first().json.total_scenes\n  }\n}];"
+      },
+      "id": "8556a377-6fa7-4b14-9f21-61477e73e660",
+      "name": "BGM 매칭",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4768, 2864]
+    },
+    {
+      "parameters": {
+        "chatId": "여기에_TELEGRAM_CHAT_ID",
+        "text": "=🦦 수달이 콘텐츠 준비 완료!\n\n📅 날짜: {{ $('스크립트 파싱 + 씬 분리').first().json.date_str }}\n🎬 제목: {{ $('스크립트 파싱 + 씬 분리').first().json.title }}\n💡 컨셉: {{ $('스크립트 파싱 + 씬 분리').first().json.concept }}\n🎵 BGM 분위기: {{ $('스크립트 파싱 + 씬 분리').first().json.bgm_mood }}\n🎶 선택된 BGM: {{ $('BGM 매칭').item.json.selected_bgm }}\n\n📁 구글 드라이브 확인\n→ 이미지 {{ $('스크립트 파싱 + 씬 분리').first().json.total_scenes }}장 저장 완료\n→ 5초 영상 클립 {{ $('스크립트 파싱 + 씬 분리').first().json.total_scenes }}개 저장 완료\n→ 자막 파일(.srt) 저장 완료\n\n✅ 다음 단계\n1. Drive 5s 영상 폴더에서 클립 확인\n2. CapCut에서 클립 연결 + .srt 자막 임포트\n3. BGM 추가 후 업로드",
+        "additionalFields": {}
+      },
+      "id": "b4b80808-ba4b-49ef-bc16-f39dc6af2aff",
+      "name": "Telegram - 완료 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4992, 2864],
+      "webhookId": "cb33e486-41a0-4d64-a8da-efa302f013a3",
+      "credentials": {
+        "telegramApi": {
+          "id": "여기에_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "fb68523b-2228-4d58-a024-0e4cbf0896b1",
+      "name": "매일 오전 9시 트리거",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [3424, 2864]
+    }
+  ],
+  "connections": {
+    "매일 오전 9시 트리거": {
+      "main": [[{"node": "Claude - 스크립트 생성", "type": "main", "index": 0}]]
+    },
+    "Claude - 스크립트 생성": {
+      "main": [[{"node": "스크립트 파싱 + 씬 분리", "type": "main", "index": 0}]]
+    },
+    "스크립트 파싱 + 씬 분리": {
+      "main": [[{"node": "스크립트 txt 생성", "type": "main", "index": 0}]]
+    },
+    "스크립트 txt 생성": {
+      "main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]
+    },
+    "Loop Over Items": {
+      "main": [
+        [{"node": "Google Drive - 자막 저장", "type": "main", "index": 0}],
+        [{"node": "Gemini - 이미지 생성", "type": "main", "index": 0}]
+      ]
+    },
+    "Gemini - 이미지 생성": {
+      "main": [[{"node": "이미지 추출", "type": "main", "index": 0}]]
+    },
+    "이미지 추출": {
+      "main": [[{"node": "Google Drive - 이미지 저장", "type": "main", "index": 0}]]
+    },
+    "Google Drive - 이미지 저장": {
+      "main": [[{"node": "JWT 토큰생성", "type": "main", "index": 0}]]
+    },
+    "JWT 토큰생성": {
+      "main": [[{"node": "Kling - 영상 생성 요청", "type": "main", "index": 0}]]
+    },
+    "Kling - 영상 생성 요청": {
+      "main": [[{"node": "Wait", "type": "main", "index": 0}]]
+    },
+    "Wait": {
+      "main": [[{"node": "Kling - 결과 조회", "type": "main", "index": 0}]]
+    },
+    "Kling - 결과 조회": {
+      "main": [[{"node": "영상 URL 추출", "type": "main", "index": 0}]]
+    },
+    "영상 URL 추출": {
+      "main": [[{"node": "영상 다운로드", "type": "main", "index": 0}]]
+    },
+    "영상 다운로드": {
+      "main": [[{"node": "클립 저장", "type": "main", "index": 0}]]
+    },
+    "클립 저장": {
+      "main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]
+    },
+    "Google Drive - 자막 저장": {
+      "main": [[{"node": "BGM 매칭", "type": "main", "index": 0}]]
+    },
+    "BGM 매칭": {
+      "main": [[{"node": "Telegram - 완료 알림", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "여기에_N8N_INSTANCE_ID"
+  }
+}

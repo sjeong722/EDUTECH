@@ -1,0 +1,349 @@
+{
+  "name": "수달 쇼츠 자동화 워크플로우",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-trigger",
+      "name": "매일 오전 9시 트리거",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $credentials.httpHeaderAuth.value }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"claude-sonnet-4-5\",\n  \"max_tokens\": 2000,\n  \"system\": \"당신은 '취준하는 수달이' 쇼츠 영상 콘텐츠 크리에이터입니다.\\n\\n[캐릭터 설정]\\n- 이름: 수달이\\n- 컨셉: 취업 준비 중인 귀여운 3D 수달\\n- 말투: 공감가고 귀엽고 따뜻한 톤\\n- 타겟: 취준생, 직장인 공감 콘텐츠\\n\\n[출력 형식 - 반드시 JSON으로만 응답]\\n{\\n  \\\"title\\\": \\\"영상 제목\\\",\\n  \\\"concept\\\": \\\"오늘의 컨셉 한 줄 설명\\\",\\n  \\\"bgm_mood\\\": \\\"bgm 분위기 키워드 (예: lofi, 따뜻한, 감성적)\\\",\\n  \\\"scenes\\\": [\\n    {\\n      \\\"scene_number\\\": 1,\\n      \\\"duration_sec\\\": 4,\\n      \\\"narration\\\": \\\"나레이션 텍스트\\\",\\n      \\\"image_prompt_en\\\": \\\"Gemini 이미지 생성용 영어 프롬프트. 반드시 포함: cute 3D otter with big dark eyes, brown fur, white cheeks, chubby face, Pixar-style animation, warm soft lighting, vertical 9:16 format\\\",\\n      \\\"subtitle\\\": \\\"영상에 표시될 자막 텍스트\\\"\\n    }\\n  ],\\n  \\\"srt_content\\\": \\\"SRT 자막 파일 전체 내용\\\"\\n}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"오늘 날짜: {{ $now.toFormat('yyyy-MM-dd') }}\\n\\n취준하는 수달이 쇼츠 영상 1편을 기획해주세요.\\n- 총 4~5개 씬\\n- 각 씬 4~5초\\n- 전체 영상 15~20초\\n- 오늘의 취준 공감 주제로 스토리 구성\\n- SRT 자막 파일도 함께 생성 (각 씬 타임코드 포함)\\n\\nJSON 형식으로만 응답하세요. 마크다운 코드블록 없이 순수 JSON만.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "node-claude",
+      "name": "Claude - 스크립트 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CLAUDE_API_CREDENTIAL_ID",
+          "name": "Claude API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Claude 응답에서 JSON 파싱\nconst response = $input.first().json;\nconst content = response.content[0].text;\n\n// JSON 파싱 (마크다운 코드블록 제거 후)\nconst cleanJson = content\n  .replace(/```json\\n?/g, '')\n  .replace(/```\\n?/g, '')\n  .trim();\n\nlet scriptData;\ntry {\n  scriptData = JSON.parse(cleanJson);\n} catch(e) {\n  throw new Error('Claude 응답 파싱 실패: ' + content);\n}\n\n// 씬별로 개별 아이템 생성 (Gemini 이미지 생성용)\nconst scenes = scriptData.scenes;\nconst results = [];\n\nfor (const scene of scenes) {\n  results.push({\n    json: {\n      // 전체 스크립트 데이터\n      title: scriptData.title,\n      concept: scriptData.concept,\n      bgm_mood: scriptData.bgm_mood,\n      srt_content: scriptData.srt_content,\n      total_scenes: scenes.length,\n      // 현재 씬 데이터\n      scene_number: scene.scene_number,\n      duration_sec: scene.duration_sec,\n      narration: scene.narration,\n      image_prompt_en: scene.image_prompt_en,\n      subtitle: scene.subtitle,\n      // 파일명용 날짜\n      date_str: new Date().toISOString().split('T')[0]\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "node-parse",
+      "name": "스크립트 파싱 + 씬 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{ $json.image_prompt_en }}, vertical 9:16 aspect ratio, for YouTube Shorts\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseModalities\": [\"IMAGE\", \"TEXT\"],\n    \"responseMimeType\": \"image/png\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-gemini",
+      "name": "Gemini - 이미지 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "GEMINI_API_CREDENTIAL_ID",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini 응답에서 base64 이미지 추출\nconst response = $input.first().json;\nconst sceneData = $input.first().json;\n\n// Gemini 이미지 응답 파싱\nlet base64Image = null;\nlet mimeType = 'image/png';\n\ntry {\n  const parts = response.candidates[0].content.parts;\n  for (const part of parts) {\n    if (part.inlineData) {\n      base64Image = part.inlineData.data;\n      mimeType = part.inlineData.mimeType || 'image/png';\n      break;\n    }\n  }\n} catch(e) {\n  throw new Error('Gemini 이미지 파싱 실패: ' + JSON.stringify(response));\n}\n\nif (!base64Image) {\n  throw new Error('이미지 데이터를 찾을 수 없습니다');\n}\n\nreturn [{\n  json: {\n    title: $('스크립트 파싱 + 씬 분리').item.json.title,\n    concept: $('스크립트 파싱 + 씬 분리').item.json.concept,\n    bgm_mood: $('스크립트 파싱 + 씬 분리').item.json.bgm_mood,\n    srt_content: $('스크립트 파싱 + 씬 분리').item.json.srt_content,\n    scene_number: $('스크립트 파싱 + 씬 분리').item.json.scene_number,\n    subtitle: $('스크립트 파싱 + 씬 분리').item.json.subtitle,\n    date_str: $('스크립트 파싱 + 씬 분리').item.json.date_str,\n    total_scenes: $('스크립트 파싱 + 씬 분리').item.json.total_scenes,\n    image_base64: base64Image,\n    mime_type: mimeType,\n    file_name: `scene_${ $('스크립트 파싱 + 씬 분리').item.json.scene_number }_${ $('스크립트 파싱 + 씬 분리').item.json.date_str }.png`\n  },\n  binary: {\n    image: {\n      data: base64Image,\n      mimeType: mimeType,\n      fileName: `scene_${ $('스크립트 파싱 + 씬 분리').item.json.scene_number }_${ $('스크립트 파싱 + 씬 분리').item.json.date_str }.png`\n    }\n  }\n}];"
+      },
+      "id": "node-extract-image",
+      "name": "이미지 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $json.file_name }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "binaryData": true,
+        "binaryPropertyName": "image",
+        "options": {}
+      },
+      "id": "node-drive-image",
+      "name": "Google Drive - 이미지 저장",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1340, 180],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "last-scene-check",
+              "leftValue": "={{ $json.scene_number }}",
+              "rightValue": "={{ $json.total_scenes }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-last",
+      "name": "마지막 씬?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $('스크립트 파싱 + 씬 분리').first().json.date_str }}_subtitle.srt",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "binaryData": false,
+        "fileContent": "={{ $('스크립트 파싱 + 씬 분리').first().json.srt_content }}",
+        "options": {}
+      },
+      "id": "node-drive-srt",
+      "name": "Google Drive - 자막 저장",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1780, 180],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// BGM 선택 로직 - 분위기 키워드로 매칭\nconst bgmMood = $('스크립트 파싱 + 씬 분리').first().json.bgm_mood;\nconst dateStr = $('스크립트 파싱 + 씬 분리').first().json.date_str;\nconst title = $('스크립트 파싱 + 씬 분리').first().json.title;\nconst concept = $('스크립트 파싱 + 씬 분리').first().json.concept;\n\n// BGM 풀 (Drive에 미리 저장해둔 파일명 목록)\n// ⚠️ 소정님이 Suno에서 만든 BGM 파일명으로 교체해주세요\nconst bgmPool = {\n  lofi: 'bgm_lofi_chill.mp3',\n  감성: 'bgm_emotional_warm.mp3',\n  따뜻한: 'bgm_warm_cozy.mp3',\n  신나는: 'bgm_upbeat_fun.mp3',\n  잔잔한: 'bgm_calm_peaceful.mp3',\n  default: 'bgm_lofi_chill.mp3'\n};\n\n// 키워드 매칭\nlet selectedBgm = bgmPool.default;\nfor (const [keyword, filename] of Object.entries(bgmPool)) {\n  if (bgmMood && bgmMood.includes(keyword)) {\n    selectedBgm = filename;\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    date_str: dateStr,\n    title: title,\n    concept: concept,\n    bgm_mood: bgmMood,\n    selected_bgm: selectedBgm,\n    total_scenes: $('스크립트 파싱 + 씬 분리').first().json.total_scenes\n  }\n}];"
+      },
+      "id": "node-bgm",
+      "name": "BGM 매칭",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 420]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🦦 수달이 콘텐츠 준비 완료!\n\n📅 날짜: {{ $('BGM 매칭').item.json.date_str }}\n🎬 제목: {{ $('BGM 매칭').item.json.title }}\n💡 컨셉: {{ $('BGM 매칭').item.json.concept }}\n🎵 BGM 분위기: {{ $('BGM 매칭').item.json.bgm_mood }}\n🎶 선택된 BGM: {{ $('BGM 매칭').item.json.selected_bgm }}\n\n📁 구글 드라이브 확인\n→ 이미지 {{ $('BGM 매칭').item.json.total_scenes }}장 저장 완료\n→ 자막 파일(.srt) 저장 완료\n\n✅ 다음 단계\n1. Drive에서 이미지 확인\n2. Genspark R2V로 클립 생성\n3. CapCut에서 .srt 자막 임포트 후 편집\n4. BGM 추가 후 업로드",
+        "additionalFields": {}
+      },
+      "id": "node-telegram",
+      "name": "Telegram - 완료 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2000, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 오전 9시 트리거": {
+      "main": [
+        [
+          {
+            "node": "Claude - 스크립트 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - 스크립트 생성": {
+      "main": [
+        [
+          {
+            "node": "스크립트 파싱 + 씬 분리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스크립트 파싱 + 씬 분리": {
+      "main": [
+        [
+          {
+            "node": "Gemini - 이미지 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - 이미지 생성": {
+      "main": [
+        [
+          {
+            "node": "이미지 추출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이미지 추출": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - 이미지 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - 이미지 저장": {
+      "main": [
+        [
+          {
+            "node": "마지막 씬?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "마지막 씬?": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - 자막 저장",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "BGM 매칭",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Google Drive - 자막 저장": {
+      "main": [
+        [
+          {
+            "node": "Telegram - 완료 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BGM 매칭": {
+      "main": [
+        [
+          {
+            "node": "Telegram - 완료 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["수달이", "쇼츠자동화"],
+  "triggerCount": 1,
+  "updatedAt": "2026-05-19T00:00:00.000Z",
+  "versionId": "1"
+}
