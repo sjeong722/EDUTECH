@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/ai-education-chatbot.html"
-    }
-  ]
-}

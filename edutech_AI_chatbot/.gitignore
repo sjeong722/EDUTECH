@@ -1,6 +1,0 @@
-.DS_Store
-node_modules/
-.vercel/
-.env*
-!.env.example
-.tmp_pdf_text/
