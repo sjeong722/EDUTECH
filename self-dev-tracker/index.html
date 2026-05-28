@@ -1,1 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self Dev Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --border:#E4E0D8;
+  --text-primary:#1A1916;
+  --text-secondary:#7A7770;
+  --text-tertiary:#B0ADA8;
+  --green:#1D7A55;
+  --green-bg:#EAF5EE;
+  --green-text:#0F5038;
+  --blue:#1A5FAD;
+  --blue-bg:#EAF1FB;
+  --blue-text:#0C3F7A;
+  --amber:#9B6B10;
+  --amber-bg:#FDF4E3;
+  --amber-text:#6B4608;
+  --check:#1D7A55;
+  --radius:10px;
+  --radius-sm:6px;
+}
+
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text-primary);
+  min-height:100vh;
+  padding:32px 16px 64px;
+  font-size:15px;
+  line-height:1.6;
+}
+
+.container{max-width:560px;margin:0 auto}
+
+header{margin-bottom:36px}
+.header-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px}
+h1{font-family:'DM Serif Display',serif;font-size:32px;font-weight:400;line-height:1.2;color:var(--text-primary);margin-bottom:6px}
+.header-sub{font-size:13px;color:var(--text-secondary)}
+
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:32px}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center}
+.summary-card-label{font-size:11px;color:var(--text-tertiary);margin-bottom:6px;letter-spacing:.04em}
+.summary-card-value{font-size:22px;font-weight:500;line-height:1}
+.summary-card-value.green{color:var(--green)}
+.summary-card-value.blue{color:var(--blue)}
+.summary-card-value.amber{color:var(--amber)}
+
+.section{margin-bottom:28px}
+.section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.section-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green)}
+.dot-blue{background:var(--blue)}
+.dot-amber{background:var(--amber)}
+.section-title{font-size:13px;font-weight:500;color:var(--text-primary)}
+.section-badge{font-size:11px;padding:2px 8px;border-radius:20px;margin-left:auto}
+.badge-green{background:var(--green-bg);color:var(--green-text)}
+.badge-blue{background:var(--blue-bg);color:var(--blue-text)}
+.badge-amber{background:var(--amber-bg);color:var(--amber-text)}
+
+.routine-item{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  margin-bottom:8px;
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  cursor:pointer;
+  transition:border-color .15s, opacity .2s;
+  user-select:none;
+}
+.routine-item:hover{border-color:#C8C4BC}
+.routine-item.done{opacity:.45}
+.routine-item.done .item-title{text-decoration:line-through;text-decoration-color:var(--text-tertiary)}
+
+.checkbox{
+  width:20px;height:20px;
+  border-radius:5px;
+  border:1.5px solid var(--border);
+  flex-shrink:0;
+  margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+  background:var(--surface);
+}
+.checkbox.checked{background:var(--check);border-color:var(--check)}
+.checkbox svg{display:none;width:12px;height:12px}
+.checkbox.checked svg{display:block}
+
+.item-body{flex:1;min-width:0}
+.item-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:2px}
+.item-desc{font-size:12px;color:var(--text-secondary);line-height:1.5}
+.item-tag{display:inline-block;font-size:10px;padding:1px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text-tertiary);margin-left:6px;vertical-align:middle;font-weight:400}
+
+.quarterly{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  margin-top:8px;
+}
+.quarterly-title{font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:14px}
+.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.prog-label{font-size:11px;color:var(--text-secondary);width:30px;flex-shrink:0}
+.prog-track{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .3s;width:0%}
+.fill-green{background:var(--green)}
+.fill-blue{background:var(--blue)}
+.fill-amber{background:var(--amber)}
+.prog-pct{font-size:11px;color:var(--text-tertiary);width:28px;text-align:right;flex-shrink:0}
+
+.reset-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:12px;
+  font-size:12px;color:var(--text-secondary);
+  background:none;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:5px 12px;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  transition:background .15s;
+}
+.reset-btn:hover{background:var(--bg)}
+.reset-btn svg{width:13px;height:13px}
+
+footer{
+  text-align:center;
+  font-size:11px;
+  color:var(--text-tertiary);
+  margin-top:40px;
+  letter-spacing:.04em;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <p class="header-label">Self Dev Tracker</p>
+    <h1>소정님의<br>성장 루틴</h1>
+    <p class="header-sub">다중지능 분석 기반 · 일간 / 주간 / 월간</p>
+  </header>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <p class="summary-card-label">오늘 완료</p>
+      <p class="summary-card-value green" id="cnt-d">0/2</p>
+    </div>
+    <div class="summary-card">
+      <p class="summary-card-label">이번 주 완료</p>
+      <p class="summary-card-value blue" id="cnt-w">0/5</p>
+    </div>
+    <div class="summary-card">
+      <p class="summary-card-label">이번 달 완료</p>
+      <p class="summary-card-value amber" id="cnt-m">0/2</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-dot dot-green"></span>
+      <span class="section-title">일간</span>
+      <span class="section-badge badge-green">매일</span>
+    </div>
+
+    <div class="routine-item" data-id="d1" data-group="d" onclick="toggle(this)">
+      <div class="checkbox" id="chk-d1">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">"왜" 3번 쓰기<span class="item-tag">5분</span></p>
+        <p class="item-desc">오늘 한 일·배운 것 하나 → 왜? → 왜? → 왜? 3단계 노트</p>
+      </div>
+    </div>
+
+    <div class="routine-item" data-id="d2" data-group="d" onclick="toggle(this)">
+      <div class="checkbox" id="chk-d2">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">2분 설명 연습<span class="item-tag">2분</span></p>
+        <p class="item-desc">프로젝트·개념 하나를 혼자 소리내어 2분 안에 설명 (or 녹음)</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-dot dot-blue"></span>
+      <span class="section-title">주간</span>
+      <span class="section-badge badge-blue">매주</span>
+    </div>
+
+    <div class="routine-item" data-id="w1" data-group="w" onclick="toggle(this)">
+      <div class="checkbox" id="chk-w1">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">주간 회고 3줄<span class="item-tag">금요일</span></p>
+        <p class="item-desc">잘 된 것 1줄 / 삐끗한 것 1줄 / 다음 주 바꿀 것 1줄</p>
+      </div>
+    </div>
+
+    <div class="routine-item" data-id="w2" data-group="w" onclick="toggle(this)">
+      <div class="checkbox" id="chk-w2">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">기술 문서 1편 읽고 요약<span class="item-tag">30분</span></p>
+        <p class="item-desc">n8n·Supabase 등 공식 문서 → 핵심 한국어 3문장 요약</p>
+      </div>
+    </div>
+
+    <div class="routine-item" data-id="w3" data-group="w" onclick="toggle(this)">
+      <div class="checkbox" id="chk-w3">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">현업자 콘텐츠 1개 소화<span class="item-tag">대인관계</span></p>
+        <p class="item-desc">데이터 분석가·AX 엔지니어 포스팅 보고 "문제-해결" 한 줄 정리</p>
+      </div>
+    </div>
+
+    <div class="routine-item" data-id="w4" data-group="w" onclick="toggle(this)">
+      <div class="checkbox" id="chk-w4">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">새 도구 30분 탐색<span class="item-tag">자연탐구</span></p>
+        <p class="item-desc">Redash·dbt·LangGraph 등 → 무엇인지, 언제 쓰는지만 정리</p>
+      </div>
+    </div>
+
+    <div class="routine-item" data-id="w5" data-group="w" onclick="toggle(this)">
+      <div class="checkbox" id="chk-w5">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">시각화 1개 만들기<span class="item-tag">공간</span></p>
+        <p class="item-desc">분석 결과를 차트 1개로 — "더 명확하게?"를 스스로 질문</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-dot dot-amber"></span>
+      <span class="section-title">월간</span>
+      <span class="section-badge badge-amber">매월</span>
+    </div>
+
+    <div class="routine-item" data-id="m1" data-group="m" onclick="toggle(this)">
+      <div class="checkbox" id="chk-m1">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">포트폴리오 1개 업데이트<span class="item-tag">언어+공간</span></p>
+        <p class="item-desc">GitHub README 또는 Notion — 완성 프로젝트 1개 추가·정리</p>
+      </div>
+    </div>
+
+    <div class="routine-item" data-id="m2" data-group="m" onclick="toggle(this)">
+      <div class="checkbox" id="chk-m2">
+        <svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+      </div>
+      <div class="item-body">
+        <p class="item-title">스터디 발표 1회<span class="item-tag">대인관계</span></p>
+        <p class="item-desc">Data/AI 스터디에서 내가 정리한 내용을 직접 발표</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="quarterly">
+    <p class="quarterly-title">분기 진행률</p>
+    <div class="prog-row">
+      <span class="prog-label">일간</span>
+      <div class="prog-track"><div class="prog-fill fill-green" id="pf-d"></div></div>
+      <span class="prog-pct" id="pp-d">0%</span>
+    </div>
+    <div class="prog-row">
+      <span class="prog-label">주간</span>
+      <div class="prog-track"><div class="prog-fill fill-blue" id="pf-w"></div></div>
+      <span class="prog-pct" id="pp-w">0%</span>
+    </div>
+    <div class="prog-row">
+      <span class="prog-label">월간</span>
+      <div class="prog-track"><div class="prog-fill fill-amber" id="pf-m"></div></div>
+      <span class="prog-pct" id="pp-m">0%</span>
+    </div>
+    <button class="reset-btn" onclick="resetAll()">
+      <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 6.5A4.5 4.5 0 1 1 6.5 11"/><polyline points="2,4 2,6.5 4.5,6.5"/></svg>
+      전체 초기화
+    </button>
+  </div>
+
+  <footer>sjeong722 · self-dev-tracker · 2026</footer>
+
+</div>
+<script>
+const totals={d:2,w:5,m:2};
+const state={d1:0,d2:0,w1:0,w2:0,w3:0,w4:0,w5:0,m1:0,m2:0};
+
+function toggle(el){
+  const id=el.dataset.id;
+  state[id]=state[id]?0:1;
+  const chk=document.getElementById('chk-'+id);
+  if(state[id]){chk.classList.add('checked');el.classList.add('done');}
+  else{chk.classList.remove('checked');el.classList.remove('done');}
+  update();
+}
+
+function update(){
+  const d=[state.d1,state.d2].reduce((a,b)=>a+b,0);
+  const w=[state.w1,state.w2,state.w3,state.w4,state.w5].reduce((a,b)=>a+b,0);
+  const m=[state.m1,state.m2].reduce((a,b)=>a+b,0);
+  document.getElementById('cnt-d').textContent=d+'/2';
+  document.getElementById('cnt-w').textContent=w+'/5';
+  document.getElementById('cnt-m').textContent=m+'/2';
+  const dp=Math.round(d/2*100),wp=Math.round(w/5*100),mp=Math.round(m/2*100);
+  document.getElementById('pf-d').style.width=dp+'%';
+  document.getElementById('pf-w').style.width=wp+'%';
+  document.getElementById('pf-m').style.width=mp+'%';
+  document.getElementById('pp-d').textContent=dp+'%';
+  document.getElementById('pp-w').textContent=wp+'%';
+  document.getElementById('pp-m').textContent=mp+'%';
+}
+
+function resetAll(){
+  Object.keys(state).forEach(k=>state[k]=0);
+  document.querySelectorAll('.routine-item').forEach(el=>{
+    el.classList.remove('done');
+    el.querySelector('.checkbox').classList.remove('checked');
+  });
+  update();
+}
+</script>
+</body>
+</html>
