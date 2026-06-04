@@ -1,0 +1,25 @@
+{
+  "name": "edutech-letter",
+  "version": "1.0.0",
+  "description": "최근 에듀테크 뉴스를 모아보는 웹 대시보드",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "edutech",
+    "news",
+    "newsletter"
+  ],
+  "author": "sjeong722",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.16.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: edutech-letter
+    runtime: node
+    plan: free
+    rootDir: edutech_letter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
