@@ -2,6 +2,8 @@
 
 최근 에듀테크 뉴스 기사를 한곳에서 모아보는 웹 대시보드입니다. `edutech_job`의 Node.js/Express 수집 구조와 Bento 스타일 UI를 활용해 만들었습니다.
 
+> 공개 URL: https://edutech-letter.onrender.com
+
 ## 주요 기능
 
 - Google News RSS와 지정 사이트 범위 검색을 통한 자료 자동 수집
