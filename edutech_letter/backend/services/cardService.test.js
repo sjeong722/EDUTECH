@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createDigestCardSvg, escapeXml, getFontCss, wrapText } = require('./cardService');
+const { createDigestCardSvg, escapeXml, getFontData, wrapText } = require('./cardService');
 
 test('XML 특수문자를 이스케이프한다', () => {
   assert.equal(escapeXml('AI & <교육>'), 'AI &amp; &lt;교육&gt;');
@@ -12,8 +12,8 @@ test('긴 제목을 여러 줄로 나눈다', () => {
   assert.equal(lines.length, 2);
 });
 
-test('브리핑 카드 SVG를 생성한다', () => {
-  const svg = createDigestCardSvg({
+test('브리핑 카드 SVG를 생성한다', async () => {
+  const svg = await createDigestCardSvg({
     generatedAt: '2026-06-05T00:00:00.000Z',
     windowHours: 24,
     count: 1,
@@ -28,11 +28,10 @@ test('브리핑 카드 SVG를 생성한다', () => {
   });
 
   assert.match(svg, /^<svg/);
-  assert.match(svg, /AI 교육 헤드라인/);
-  assert.match(svg, /EduTech Letter/);
+  assert.match(svg, /<path/);
+  assert.match(svg, /#3182f6/);
 });
 
 test('한글 렌더링용 내장 폰트 CSS를 생성한다', () => {
-  assert.match(getFontCss(), /NotoSansKREmbedded/);
-  assert.match(getFontCss(), /base64/);
+  assert.ok(getFontData().length > 1000);
 });

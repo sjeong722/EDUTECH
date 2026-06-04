@@ -71,7 +71,7 @@ app.get('/api/digest-card.svg', async (req, res) => {
     });
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=300');
-    res.send(createDigestCardSvg(digest));
+    res.send(await createDigestCardSvg(digest));
   } catch (error) {
     console.error('브리핑 카드 API 오류:', error.message || error);
     res.status(500).send('브리핑 카드 생성 중 오류가 발생했습니다.');
@@ -85,7 +85,7 @@ app.get('/api/digest-card.png', async (req, res) => {
       windowHours: req.query.hours,
       limit: req.query.limit || 5,
     });
-    const svg = createDigestCardSvg(digest);
+    const svg = await createDigestCardSvg(digest);
     const png = await sharp(Buffer.from(svg)).png().toBuffer();
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=300');

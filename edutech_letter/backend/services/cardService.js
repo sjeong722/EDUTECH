@@ -1,11 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
+const satori = require('satori').default;
+
 const CARD_WIDTH = 1080;
-const MAX_TITLE_CHARS = 40;
+const MAX_TITLE_CHARS = 42;
 const MAX_LINES = 2;
 const FONT_PATH = path.join(__dirname, '../assets/fonts/NotoSansKR-Bold.ttf');
-let cachedFontCss = null;
+let cachedFont = null;
+
+function getFontData() {
+  if (!cachedFont) cachedFont = fs.readFileSync(FONT_PATH);
+  return cachedFont;
+}
 
 function escapeXml(value) {
   return String(value)
@@ -48,68 +55,165 @@ function formatKoreanDate(date) {
   }).format(date);
 }
 
-function getFontCss() {
-  if (!cachedFontCss) {
-    const fontBase64 = fs.readFileSync(FONT_PATH).toString('base64');
-    cachedFontCss = `
-      @font-face {
-        font-family: 'NotoSansKREmbedded';
-        src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
-        font-weight: 700 900;
-      }
-      text { font-family: 'NotoSansKREmbedded', sans-serif; }
-    `;
-  }
-  return cachedFontCss;
+function text(value, style = {}) {
+  return { type: 'div', props: { style, children: String(value) } };
 }
 
-function createDigestCardSvg(digest) {
+function createRow(article, index) {
+  const keywords = (article.coreKeywords || []).join(' · ') || article.type || '에듀테크';
+  return {
+    type: 'div',
+    props: {
+      style: {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        width: '100%',
+        padding: '24px 0',
+        borderBottom: '2px solid #e5e8eb',
+      },
+      children: [
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: '#e8f3ff',
+              color: '#3182f6',
+              fontSize: 25,
+              fontWeight: 700,
+              flexShrink: 0,
+              marginTop: 4,
+            },
+            children: String(index + 1),
+          },
+        },
+        {
+          type: 'div',
+          props: {
+            style: {
+              display: 'flex',
+              flexDirection: 'column',
+              marginLeft: 40,
+              flex: 1,
+            },
+            children: [
+              text(wrapText(article.reportTitle).join('\n'), {
+                color: '#191f28',
+                fontSize: 30,
+                lineHeight: 1.35,
+                fontWeight: 700,
+                whiteSpace: 'pre-wrap',
+              }),
+              text(`${article.institution} · ${keywords}`, {
+                marginTop: 18,
+                color: '#6b7684',
+                fontSize: 22,
+                lineHeight: 1.25,
+                fontWeight: 700,
+              }),
+            ],
+          },
+        },
+      ],
+    },
+  };
+}
+
+async function createDigestCardSvg(digest) {
   const headlines = digest.headlines.slice(0, 5);
-  const rowHeight = 132;
-  const cardHeight = 320 + Math.max(headlines.length, 1) * rowHeight;
+  const rowHeight = 150;
+  const cardHeight = 250 + Math.max(headlines.length, 1) * rowHeight;
   const dateLabel = formatKoreanDate(new Date(digest.generatedAt));
 
-  const rows = headlines.length
-    ? headlines.map((article, index) => {
-      const y = 280 + index * rowHeight;
-      const titleLines = wrapText(article.reportTitle);
-      const titleTspans = titleLines.map((line, lineIndex) => (
-        `<tspan x="168" dy="${lineIndex === 0 ? 0 : 34}">${escapeXml(line)}</tspan>`
-      )).join('');
-      const keywords = (article.coreKeywords || []).join(' · ') || article.type || '에듀테크';
+  const tree = {
+    type: 'div',
+    props: {
+      style: {
+        display: 'flex',
+        width: CARD_WIDTH,
+        height: cardHeight,
+        padding: 36,
+        backgroundColor: '#f7f8f9',
+        fontFamily: 'NotoSansKR',
+      },
+      children: {
+        type: 'div',
+        props: {
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#ffffff',
+            borderRadius: 36,
+            overflow: 'hidden',
+          },
+          children: [
+            {
+              type: 'div',
+              props: {
+                style: {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '34px 36px 28px',
+                  height: 190,
+                  backgroundColor: '#3182f6',
+                },
+                children: [
+                  text('EduTech Letter', { color: '#d9eaff', fontSize: 26, lineHeight: 1.2, fontWeight: 700 }),
+                  text(`${dateLabel} 아침 브리핑`, {
+                    marginTop: 14,
+                    color: '#ffffff',
+                    fontSize: 46,
+                    lineHeight: 1.15,
+                    fontWeight: 700,
+                  }),
+                  text(`최근 ${digest.windowHours}시간 헤드라인 ${digest.count}건 · 전체 보기 edutech-letter.onrender.com`, {
+                    marginTop: 14,
+                    color: '#d9eaff',
+                    fontSize: 24,
+                    lineHeight: 1.25,
+                    fontWeight: 700,
+                  }),
+                ],
+              },
+            },
+            {
+              type: 'div',
+              props: {
+                style: { display: 'flex', flexDirection: 'column', padding: '36px 36px 0', flex: 1 },
+                children: headlines.length
+                  ? headlines.map(createRow)
+                  : [text(`최근 ${digest.windowHours}시간 내 새 헤드라인이 없습니다.`, {
+                    color: '#4e5968',
+                    fontSize: 32,
+                    lineHeight: 1.4,
+                    fontWeight: 700,
+                  })],
+              },
+            },
+          ],
+        },
+      },
+    },
+  };
 
-      return `
-        <g>
-          <circle cx="96" cy="${y + 42}" r="28" fill="#e8f3ff"/>
-          <text x="96" y="${y + 51}" text-anchor="middle" font-size="25" font-weight="800" fill="#3182f6">${index + 1}</text>
-          <text x="168" y="${y + 28}" font-size="30" font-weight="800" fill="#191f28">${titleTspans}</text>
-          <text x="168" y="${y + 96}" font-size="22" font-weight="700" fill="#6b7684">${escapeXml(article.institution)} · ${escapeXml(keywords)}</text>
-          <line x1="72" y1="${y + 122}" x2="1008" y2="${y + 122}" stroke="#e5e8eb" stroke-width="2"/>
-        </g>
-      `;
-    }).join('')
-    : `
-      <text x="72" y="330" font-size="32" font-weight="700" fill="#4e5968">최근 ${digest.windowHours}시간 내 새 헤드라인이 없습니다.</text>
-    `;
-
-  return `<svg width="${CARD_WIDTH}" height="${cardHeight}" viewBox="0 0 ${CARD_WIDTH} ${cardHeight}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>${getFontCss()}</style>
-  </defs>
-  <rect width="${CARD_WIDTH}" height="${cardHeight}" fill="#f7f8f9"/>
-  <rect x="36" y="36" width="1008" height="${cardHeight - 72}" rx="36" fill="#ffffff"/>
-  <rect x="36" y="36" width="1008" height="190" rx="36" fill="#3182f6"/>
-  <text x="72" y="98" font-size="26" font-weight="800" fill="#d9eaff">EduTech Letter</text>
-  <text x="72" y="154" font-size="46" font-weight="900" fill="#ffffff">${escapeXml(dateLabel)} 아침 브리핑</text>
-  <text x="72" y="198" font-size="24" font-weight="700" fill="#d9eaff">최근 ${digest.windowHours}시간 헤드라인 ${digest.count}건 · 전체 보기 edutech-letter.onrender.com</text>
-  ${rows}
-  <text x="72" y="${cardHeight - 44}" font-size="21" font-weight="700" fill="#8b95a1">https://edutech-letter.onrender.com</text>
-</svg>`;
+  return satori(tree, {
+    width: CARD_WIDTH,
+    height: cardHeight,
+    fonts: [{ name: 'NotoSansKR', data: getFontData(), weight: 700, style: 'normal' }],
+  });
 }
 
 module.exports = {
   createDigestCardSvg,
   escapeXml,
-  getFontCss,
+  getFontData,
   wrapText,
 };
