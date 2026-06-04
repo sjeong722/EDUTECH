@@ -18,6 +18,10 @@ GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5
 
 ## 사이트 링크 + 헤드라인 이미지 첨부
 
+바로 임포트할 수 있는 n8n 워크플로:
+
+- [`n8n-gmail-digest-card.json`](n8n-gmail-digest-card.json)
+
 메일 본문은 사이트 주소만 보내고, 헤드라인 카드를 이미지로 첨부하려면 아래 URL을 사용합니다.
 
 ```text

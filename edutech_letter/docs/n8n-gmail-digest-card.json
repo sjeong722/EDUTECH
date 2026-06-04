@@ -1,0 +1,117 @@
+{
+  "name": "EduTech Letter - Gmail Link and Digest Card",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Workflow purpose:\nSend a simple daily Gmail notification with the EduTech Letter site URL and attach the headline card image.\n\nAfter import:\n1. Open the Gmail node.\n2. Connect your Gmail credential.\n3. Set the To field to your email address.\n4. Optionally add CC/BCC recipients in the Gmail node.\n5. Activate the workflow.",
+        "height": 300,
+        "width": 380
+      },
+      "id": "4eda5d6a-c688-47fa-8eb0-fb574c6a845a",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "8318de07-0dd2-41f1-81ce-8f7ac8e47411",
+      "name": "Every Morning 8AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -120,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5",
+        "responseFormat": "file",
+        "dataPropertyName": "digest_card",
+        "options": {}
+      },
+      "id": "f60d7f38-b5d1-4d11-bc85-b4732070d705",
+      "name": "Download Digest Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "[EduTech Letter] 오늘의 에듀테크 브리핑",
+        "message": "오늘의 EduTech Letter가 업데이트되었습니다.<br><br><a href=\"https://edutech-letter.onrender.com/\">https://edutech-letter.onrender.com/</a><br><br>헤드라인 카드는 첨부 이미지를 확인해주세요.",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "digest_card"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c94c8a5e-ee8f-4e53-a0db-65862d27f5f6",
+      "name": "Send Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        420,
+        80
+      ],
+      "webhookId": "edutech-letter-gmail-digest-card"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Morning 8AM": {
+      "main": [
+        [
+          {
+            "node": "Download Digest Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Digest Card": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "executionOrder": "v1"
+  },
+  "versionId": "0882b5dc-f46f-43bc-9e24-41c389490050",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "edutech-letter-gmail-digest-card",
+  "tags": []
+}
