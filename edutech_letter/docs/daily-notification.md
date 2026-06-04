@@ -5,6 +5,7 @@
 ```text
 GET https://edutech-letter.onrender.com/api/digest
 GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10
+GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5
 ```
 
 최근 24시간 내 발행된 기사 제목, 발행기관, 원문 링크와 발송용 완성 문장을 반환합니다.
@@ -14,6 +15,25 @@ GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10
 - HTML 메일 본문: `{{$json.data.html}}`
 - 기사 배열: `{{$json.data.headlines}}`
 - 새 기사 수: `{{$json.data.count}}`
+
+## 사이트 링크 + 헤드라인 이미지 첨부
+
+메일 본문은 사이트 주소만 보내고, 헤드라인 카드를 이미지로 첨부하려면 아래 URL을 사용합니다.
+
+```text
+https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5
+```
+
+n8n 흐름:
+
+1. **Schedule Trigger**: 매일 오전 8시, `Asia/Seoul`
+2. **HTTP Request**: `GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5`
+   - Response Format: `File`
+   - Binary Property: `digest_card`
+3. **Gmail Send** 또는 메일 발송 노드
+   - Subject: `[EduTech Letter] 오늘의 에듀테크 브리핑`
+   - Body: `오늘의 EduTech Letter가 업데이트되었습니다.\nhttps://edutech-letter.onrender.com/`
+   - Attachment Binary Property: `digest_card`
 
 ## 권장 n8n 흐름
 

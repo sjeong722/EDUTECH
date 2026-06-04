@@ -13,6 +13,7 @@
 - 중복 자료 제거, 최신순 정렬, 통합 검색
 - 30분 메모리 캐시 및 새로고침 버튼
 - 매일 아침 알림 자동화를 위한 최근 24시간 헤드라인 API
+- 메일 첨부용 헤드라인 카드 이미지 API
 
 ## 실행 방법
 
@@ -62,6 +63,8 @@ Google News 일반 검색에서는 최근 에듀테크·AI 교육·디지털 교
 ## 아침 브리핑 자동화
 
 `GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10`에서 최근 24시간 헤드라인, 메일 제목, 텍스트 본문, HTML 본문을 받을 수 있습니다.
+
+`GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5`에서 메일 첨부용 헤드라인 카드 이미지를 받을 수 있습니다.
 
 n8n 연동 및 카카오톡·Telegram·Slack 발송 방식은 [`docs/daily-notification.md`](docs/daily-notification.md)를 참고하세요.
 

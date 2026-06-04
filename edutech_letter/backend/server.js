@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const { collectEdutechNews } = require('./services/newsService');
 const { createDailyDigest } = require('./services/digestService');
+const { createDigestCardSvg } = require('./services/cardService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +58,22 @@ app.get('/api/digest', async (req, res) => {
       success: false,
       error: '아침 브리핑 생성 중 오류가 발생했습니다.',
     });
+  }
+});
+
+app.get('/api/digest-card.svg', async (req, res) => {
+  try {
+    const news = await getNews(req.query.refresh === 'true');
+    const digest = createDailyDigest(news.articles, {
+      windowHours: req.query.hours,
+      limit: req.query.limit || 5,
+    });
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(createDigestCardSvg(digest));
+  } catch (error) {
+    console.error('브리핑 카드 API 오류:', error.message || error);
+    res.status(500).send('브리핑 카드 생성 중 오류가 발생했습니다.');
   }
 });
 
