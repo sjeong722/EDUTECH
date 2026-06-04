@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const sharp = require('sharp');
 require('dotenv').config();
 
 const { collectEdutechNews } = require('./services/newsService');
@@ -74,6 +75,24 @@ app.get('/api/digest-card.svg', async (req, res) => {
   } catch (error) {
     console.error('브리핑 카드 API 오류:', error.message || error);
     res.status(500).send('브리핑 카드 생성 중 오류가 발생했습니다.');
+  }
+});
+
+app.get('/api/digest-card.png', async (req, res) => {
+  try {
+    const news = await getNews(req.query.refresh === 'true');
+    const digest = createDailyDigest(news.articles, {
+      windowHours: req.query.hours,
+      limit: req.query.limit || 5,
+    });
+    const svg = createDigestCardSvg(digest);
+    const png = await sharp(Buffer.from(svg)).png().toBuffer();
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(png);
+  } catch (error) {
+    console.error('브리핑 PNG 카드 API 오류:', error.message || error);
+    res.status(500).send('브리핑 PNG 카드 생성 중 오류가 발생했습니다.');
   }
 });
 

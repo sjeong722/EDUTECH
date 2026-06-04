@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "Workflow purpose:\nSend a simple daily Gmail notification with the EduTech Letter site URL and attach the headline card image.\n\nAfter import:\n1. Open the Gmail node.\n2. Connect your Gmail credential.\n3. Set the To field to your email address.\n4. Optionally add CC/BCC recipients in the Gmail node.\n5. Activate the workflow.",
+        "content": "Workflow purpose:\nSend a simple daily Gmail notification with the EduTech Letter site URL and an inline headline card image.\n\nAfter import:\n1. Open the Gmail node.\n2. Connect your Gmail credential.\n3. Set the To field to your email address.\n4. Optionally add CC/BCC recipients in the Gmail node.\n5. Activate the workflow.",
         "height": 300,
         "width": 380
       },
@@ -38,13 +38,13 @@
     },
     {
       "parameters": {
-        "url": "https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5",
+        "url": "https://edutech-letter.onrender.com/api/health",
         "responseFormat": "file",
         "dataPropertyName": "digest_card",
         "options": {}
       },
       "id": "f60d7f38-b5d1-4d11-bc85-b4732070d705",
-      "name": "Download Digest Card",
+      "name": "Wake Render",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -56,16 +56,8 @@
       "parameters": {
         "sendTo": "your-email@example.com",
         "subject": "[EduTech Letter] 오늘의 에듀테크 브리핑",
-        "message": "오늘의 EduTech Letter가 업데이트되었습니다.<br><br><a href=\"https://edutech-letter.onrender.com/\">https://edutech-letter.onrender.com/</a><br><br>헤드라인 카드는 첨부 이미지를 확인해주세요.",
-        "options": {
-          "attachmentsUi": {
-            "attachmentsBinary": [
-              {
-                "property": "digest_card"
-              }
-            ]
-          }
-        }
+        "message": "<p>오늘의 EduTech Letter가 업데이트되었습니다.</p><p><a href=\"https://edutech-letter.onrender.com/\">https://edutech-letter.onrender.com/</a></p><p><a href=\"https://edutech-letter.onrender.com/\"><img src=\"https://edutech-letter.onrender.com/api/digest-card.png?hours=24&limit=5\" alt=\"EduTech Letter 헤드라인 카드\" style=\"width:100%;max-width:720px;border:0;border-radius:16px;display:block;\"></a></p>",
+        "options": {}
       },
       "id": "c94c8a5e-ee8f-4e53-a0db-65862d27f5f6",
       "name": "Send Gmail",
@@ -84,14 +76,14 @@
       "main": [
         [
           {
-            "node": "Download Digest Card",
+            "node": "Wake Render",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Download Digest Card": {
+    "Wake Render": {
       "main": [
         [
           {

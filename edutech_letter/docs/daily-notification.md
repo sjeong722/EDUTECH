@@ -6,6 +6,7 @@
 GET https://edutech-letter.onrender.com/api/digest
 GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10
 GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5
+GET https://edutech-letter.onrender.com/api/digest-card.png?hours=24&limit=5
 ```
 
 최근 24시간 내 발행된 기사 제목, 발행기관, 원문 링크와 발송용 완성 문장을 반환합니다.
@@ -16,28 +17,35 @@ GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5
 - 기사 배열: `{{$json.data.headlines}}`
 - 새 기사 수: `{{$json.data.count}}`
 
-## 사이트 링크 + 헤드라인 이미지 첨부
+## 사이트 링크 + 헤드라인 이미지 본문 표시
 
 바로 임포트할 수 있는 n8n 워크플로:
 
 - [`n8n-gmail-digest-card.json`](n8n-gmail-digest-card.json)
 
-메일 본문은 사이트 주소만 보내고, 헤드라인 카드를 이미지로 첨부하려면 아래 URL을 사용합니다.
+메일 본문은 사이트 주소만 보내고, 헤드라인 카드를 본문 이미지로 표시하려면 PNG URL을 사용합니다. Gmail은 SVG 본문 표시가 불안정하므로 PNG를 권장합니다.
 
 ```text
-https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5
+https://edutech-letter.onrender.com/api/digest-card.png?hours=24&limit=5
 ```
 
 n8n 흐름:
 
 1. **Schedule Trigger**: 매일 오전 8시, `Asia/Seoul`
-2. **HTTP Request**: `GET https://edutech-letter.onrender.com/api/digest-card.svg?hours=24&limit=5`
-   - Response Format: `File`
-   - Binary Property: `digest_card`
+2. **HTTP Request**: `GET https://edutech-letter.onrender.com/api/health`
+   - Render 무료 플랜 cold start를 깨우는 용도입니다.
 3. **Gmail Send** 또는 메일 발송 노드
    - Subject: `[EduTech Letter] 오늘의 에듀테크 브리핑`
-   - Body: `오늘의 EduTech Letter가 업데이트되었습니다.\nhttps://edutech-letter.onrender.com/`
-   - Attachment Binary Property: `digest_card`
+   - Body HTML:
+     ```html
+     <p>오늘의 EduTech Letter가 업데이트되었습니다.</p>
+     <p><a href="https://edutech-letter.onrender.com/">https://edutech-letter.onrender.com/</a></p>
+     <p>
+       <a href="https://edutech-letter.onrender.com/">
+         <img src="https://edutech-letter.onrender.com/api/digest-card.png?hours=24&limit=5" alt="EduTech Letter 헤드라인 카드" style="width:100%;max-width:720px;border:0;border-radius:16px;display:block;">
+       </a>
+     </p>
+     ```
 
 ## 권장 n8n 흐름
 
