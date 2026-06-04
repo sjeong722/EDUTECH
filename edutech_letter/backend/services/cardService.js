@@ -1,6 +1,11 @@
+const fs = require('fs');
+const path = require('path');
+
 const CARD_WIDTH = 1080;
 const MAX_TITLE_CHARS = 40;
 const MAX_LINES = 2;
+const FONT_PATH = path.join(__dirname, '../assets/fonts/NotoSansKR-Bold.ttf');
+let cachedFontCss = null;
 
 function escapeXml(value) {
   return String(value)
@@ -43,6 +48,21 @@ function formatKoreanDate(date) {
   }).format(date);
 }
 
+function getFontCss() {
+  if (!cachedFontCss) {
+    const fontBase64 = fs.readFileSync(FONT_PATH).toString('base64');
+    cachedFontCss = `
+      @font-face {
+        font-family: 'NotoSansKREmbedded';
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
+        font-weight: 700 900;
+      }
+      text { font-family: 'NotoSansKREmbedded', sans-serif; }
+    `;
+  }
+  return cachedFontCss;
+}
+
 function createDigestCardSvg(digest) {
   const headlines = digest.headlines.slice(0, 5);
   const rowHeight = 132;
@@ -73,6 +93,9 @@ function createDigestCardSvg(digest) {
     `;
 
   return `<svg width="${CARD_WIDTH}" height="${cardHeight}" viewBox="0 0 ${CARD_WIDTH} ${cardHeight}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>${getFontCss()}</style>
+  </defs>
   <rect width="${CARD_WIDTH}" height="${cardHeight}" fill="#f7f8f9"/>
   <rect x="36" y="36" width="1008" height="${cardHeight - 72}" rx="36" fill="#ffffff"/>
   <rect x="36" y="36" width="1008" height="190" rx="36" fill="#3182f6"/>
@@ -87,5 +110,6 @@ function createDigestCardSvg(digest) {
 module.exports = {
   createDigestCardSvg,
   escapeXml,
+  getFontCss,
   wrapText,
 };

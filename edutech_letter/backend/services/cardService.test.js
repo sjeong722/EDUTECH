@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createDigestCardSvg, escapeXml, wrapText } = require('./cardService');
+const { createDigestCardSvg, escapeXml, getFontCss, wrapText } = require('./cardService');
 
 test('XML 특수문자를 이스케이프한다', () => {
   assert.equal(escapeXml('AI & <교육>'), 'AI &amp; &lt;교육&gt;');
@@ -30,4 +30,9 @@ test('브리핑 카드 SVG를 생성한다', () => {
   assert.match(svg, /^<svg/);
   assert.match(svg, /AI 교육 헤드라인/);
   assert.match(svg, /EduTech Letter/);
+});
+
+test('한글 렌더링용 내장 폰트 CSS를 생성한다', () => {
+  assert.match(getFontCss(), /NotoSansKREmbedded/);
+  assert.match(getFontCss(), /base64/);
 });
