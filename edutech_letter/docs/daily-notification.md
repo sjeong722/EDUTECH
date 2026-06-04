@@ -10,6 +10,8 @@ GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10
 최근 24시간 내 발행된 기사 제목, 발행기관, 원문 링크와 발송용 완성 문장을 반환합니다.
 
 - n8n에서 사용할 메시지: `{{$json.data.message}}`
+- 메일 제목: `{{$json.data.subject}}`
+- HTML 메일 본문: `{{$json.data.html}}`
 - 기사 배열: `{{$json.data.headlines}}`
 - 새 기사 수: `{{$json.data.count}}`
 
@@ -19,6 +21,90 @@ GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10
 2. **HTTP Request**: `GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10`
 3. **IF**: `{{$json.data.count}}`가 0보다 큰 경우만 발송
 4. **메시지 발송 노드**: `{{$json.data.message}}` 전송
+
+## Brevo 또는 SendGrid로 BCC 메일 발송
+
+### Brevo HTTP Request 예시
+
+1. **Schedule Trigger**: 매일 오전 8시, `Asia/Seoul`
+2. **HTTP Request**: `GET https://edutech-letter.onrender.com/api/digest?hours=24&limit=10`
+3. **IF**: `{{$json.data.count}} > 0`
+4. **HTTP Request**: `POST https://api.brevo.com/v3/smtp/email`
+
+Headers:
+
+```text
+x-api-key: <BREVO_API_KEY>
+content-type: application/json
+```
+
+Body:
+
+```json
+{
+  "sender": {
+    "name": "EduTech Letter",
+    "email": "verified-sender@example.com"
+  },
+  "to": [
+    {
+      "email": "owner@example.com",
+      "name": "EduTech Letter"
+    }
+  ],
+  "bcc": [
+    { "email": "subscriber1@example.com" },
+    { "email": "subscriber2@example.com" }
+  ],
+  "subject": "={{$json.data.subject}}",
+  "htmlContent": "={{$json.data.html}}",
+  "textContent": "={{$json.data.message}}"
+}
+```
+
+`to`에는 본인 또는 대표 수신자 1명을 넣고, 구독자는 `bcc`에 넣으면 서로의 이메일 주소가 노출되지 않습니다.
+
+### SendGrid HTTP Request 예시
+
+`POST https://api.sendgrid.com/v3/mail/send`
+
+Headers:
+
+```text
+Authorization: Bearer <SENDGRID_API_KEY>
+content-type: application/json
+```
+
+Body:
+
+```json
+{
+  "personalizations": [
+    {
+      "to": [{ "email": "owner@example.com" }],
+      "bcc": [
+        { "email": "subscriber1@example.com" },
+        { "email": "subscriber2@example.com" }
+      ]
+    }
+  ],
+  "from": {
+    "email": "verified-sender@example.com",
+    "name": "EduTech Letter"
+  },
+  "subject": "={{$json.data.subject}}",
+  "content": [
+    {
+      "type": "text/plain",
+      "value": "={{$json.data.message}}"
+    },
+    {
+      "type": "text/html",
+      "value": "={{$json.data.html}}"
+    }
+  ]
+}
+```
 
 ## 발송 채널 선택
 

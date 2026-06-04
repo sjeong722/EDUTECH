@@ -12,6 +12,9 @@ test('최근 시간 범위에 해당하는 기사만 브리핑에 포함한다',
 
   assert.equal(digest.count, 1);
   assert.match(digest.message, /새 기사/);
+  assert.match(digest.subject, /EduTech Letter/);
+  assert.match(digest.html, /새 기사/);
+  assert.match(digest.html, /전체 자료 보기/);
   assert.doesNotMatch(digest.message, /오래된 기사/);
 });
 
