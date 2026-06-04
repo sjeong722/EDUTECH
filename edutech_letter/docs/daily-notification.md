@@ -1,5 +1,9 @@
 # 매일 아침 알림 연동
 
+## 보안 원칙
+
+API 키, OAuth 토큰, Gmail credential은 이 저장소에 커밋하지 않습니다. n8n의 **Credentials** 또는 환경변수에만 저장하세요.
+
 ## 아침 브리핑 API
 
 ```text

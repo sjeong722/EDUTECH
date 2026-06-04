@@ -24,6 +24,14 @@ npm start
 
 브라우저에서 `http://localhost:3000`으로 접속합니다. 다른 포트를 사용하려면 `.env`에 `PORT=3001`처럼 설정하세요.
 
+## 보안 메모
+
+- 실제 API 키, OAuth 토큰, 메일 서비스 키는 GitHub에 커밋하지 않습니다.
+- 로컬 값은 `.env`에 저장하고, 예시는 `.env.example`만 커밋합니다.
+- Gmail 인증 정보는 n8n의 **Credentials**에 저장합니다.
+- Brevo/SendGrid를 사용할 경우 키는 n8n 환경변수나 해당 서비스의 Credentials에 저장합니다.
+- 현재 공개 API는 뉴스 조회와 헤드라인 카드 생성을 위한 읽기 전용 API입니다.
+
 ## 구조
 
 ```text
