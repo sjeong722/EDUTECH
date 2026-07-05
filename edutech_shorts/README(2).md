@@ -108,12 +108,16 @@
 다만 이 결과는 최종 통계 결론이라기보다는 기획안 가설을 빠르게 검증하기 위한 미니 검증 자료로 보는 것이 맞다.
 
 ### `v_chart1_keyword_demand.png`
+<img width="600" height="400" alt="v_chart1_keyword_demand" src="https://github.com/user-attachments/assets/2f1552a4-19cc-4538-a67c-79b1cb163e6c" />
+
 
 인기층에서 키워드별 조회수 중앙값을 비교한 그래프다.
 
 이 그래프는 초보 투자자 키워드 중 어떤 주제가 이미 시장에서 큰 반응을 얻고 있는지 보는 데 유용하다. 이번 결과에서는 `주식 초보` 키워드의 인기층 조회수 중앙값이 가장 높게 나타났다.
 
 ### `v_chart2_quiz_effect.png`
+<img width="600" height="400" alt="v_chart2_quiz_effect" src="https://github.com/user-attachments/assets/54d516a9-ae76-4439-a1ed-0d3c63c39ea6" />
+
 
 퀴즈형과 비퀴즈형을 비교한 그래프다.
 
@@ -124,6 +128,8 @@
 이번 결과에서는 제목 기반 퀴즈형의 조회수 중앙값이 비퀴즈형보다 낮게 나왔다. 따라서 이 결과만 놓고 "퀴즈형이 잘 된다"고 말하면 안 된다. 오히려 현재 자동 라벨 기준에서는 퀴즈형 성과가 약하게 잡혔다고 보는 편이 정직하다.
 
 ### `v_chart3_layer_gap.png`
+<img width="600" height="400" alt="v_chart3_layer_gap" src="https://github.com/user-attachments/assets/ca19b737-a60a-4603-a774-a555513ec4af" />
+
 
 인기층과 최신층의 조회수 중앙값 차이를 키워드별로 비교한 그래프다.
 
