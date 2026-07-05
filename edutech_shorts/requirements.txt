@@ -1,0 +1,5 @@
+google-api-python-client
+pandas
+matplotlib
+koreanize-matplotlib
+python-dotenv
